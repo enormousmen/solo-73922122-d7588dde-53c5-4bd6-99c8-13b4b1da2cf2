@@ -1,0 +1,11 @@
+# UDP 遥测缺号诊断台：本地发包端 -> 容器内 Linux 接收端（127.0.0.1 回环）
+# 每轮独立 UDP 套接字，收尾从 /proc/net/udp 的 drops 列读取该轮内核丢包计数。
+# 说明：诊断依赖 Linux procfs，容器内 /proc 即本网络命名空间的视图，无需特权。
+services:
+  diag:
+    build: ./app
+    image: telemetry-gap-diag:latest
+    container_name: telemetry-gap-diag
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
