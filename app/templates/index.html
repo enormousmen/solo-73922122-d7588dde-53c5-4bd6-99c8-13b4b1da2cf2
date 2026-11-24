@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<title>UDP 遥测缺号诊断台</title>
+<title>UDP 遥测特征留样诊断台</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
   :root { color-scheme: light; }
@@ -12,79 +12,113 @@
   header { background: #16324f; color: #fff; padding: 14px 22px; }
   header h1 { font-size: 18px; margin: 0; }
   header p { margin: 4px 0 0; font-size: 12px; opacity: .8; }
-  main { max-width: 1080px; margin: 18px auto; padding: 0 16px; }
+  main { max-width: 1120px; margin: 18px auto; padding: 0 16px; }
   .panel { background: #fff; border: 1px solid #dde3ea; border-radius: 8px;
            padding: 16px; margin-bottom: 16px; }
   .panel h2 { font-size: 15px; margin: 0 0 12px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
           gap: 10px 14px; }
   label { display: block; font-size: 12px; color: #5a6b7d; margin-bottom: 3px; }
   input { width: 100%; padding: 6px 8px; border: 1px solid #c4ced8;
           border-radius: 5px; font-size: 13px; }
   .btns { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
-  button { padding: 8px 16px; border: 0; border-radius: 6px; font-size: 13px;
+  button { padding: 7px 14px; border: 0; border-radius: 6px; font-size: 13px;
            cursor: pointer; background: #16324f; color: #fff; }
   button.demo { background: #0f7b6c; }
   button.ghost { background: #e3e9ef; color: #16324f; }
+  button.small { padding: 3px 10px; font-size: 12px; }
   button:hover { filter: brightness(1.1); }
-  .card { background: #fff; border: 1px solid #dde3ea; border-left-width: 5px;
-          border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; }
-  .card.RUNNING, .card.DRAINING { border-left-color: #3b82f6; }
-  .card.overflow  { border-left-color: #dc2626; }
-  .card.gap       { border-left-color: #d97706; }
-  .card.clean     { border-left-color: #16a34a; }
-  .card.weak      { border-left-color: #6b7280; }
-  .card.ERROR     { border-left-color: #7c3aed; }
-  .card h3 { font-size: 14px; margin: 0 0 6px; display: flex; gap: 8px;
-             align-items: baseline; flex-wrap: wrap; }
-  .tag { font-size: 11px; padding: 1px 8px; border-radius: 10px;
-         background: #eef2f6; color: #40536a; }
-  .kv { display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: 12.5px;
-        color: #37485c; margin: 6px 0; }
-  .kv b { color: #16324f; }
-  .verdict { font-size: 13.5px; font-weight: 600; margin-top: 6px; }
-  .verdict.overflow { color: #dc2626; }
-  .verdict.gap      { color: #d97706; }
-  .verdict.clean    { color: #16a34a; }
-  .verdict.weak     { color: #6b7280; }
-  .missing { font-family: ui-monospace, Consolas, monospace; font-size: 11.5px;
-             background: #f6f8fa; border: 1px solid #e3e9ef; border-radius: 5px;
-             padding: 6px 8px; margin-top: 6px; word-break: break-all;
-             max-height: 90px; overflow: auto; }
-  .err { color: #7c3aed; font-size: 12px; }
+  .hint { font-size: 12px; color: #5a6b7d; margin-top: 10px; line-height: 1.7; }
+  .stats { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13px; }
+  .stats b { color: #16324f; }
+  .quota { font-weight: 600; }
+  .quota.full { color: #dc2626; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #edf1f5;
+           vertical-align: top; }
+  th { color: #5a6b7d; font-weight: 600; white-space: nowrap; }
+  td.mono, .mono { font-family: ui-monospace, Consolas, monospace; }
+  .tag { display: inline-block; font-size: 11px; padding: 1px 8px;
+         border-radius: 10px; background: #eef2f6; color: #40536a; }
+  .tag.ARMED       { background: #dbeafe; color: #1d4ed8; }
+  .tag.TRIGGERED   { background: #dcfce7; color: #15803d; }
+  .tag.COLLECTING  { background: #dbeafe; color: #1d4ed8; }
+  .tag.COMPLETE    { background: #dcfce7; color: #15803d; }
+  .tag.FAILED      { background: #fee2e2; color: #b91c1c; }
+  .tag.EXPIRED     { background: #ffedd5; color: #c2410c; }
+  .tag.DISCARDED   { background: #e5e7eb; color: #4b5563; }
+  .tag.CANCELLED   { background: #e5e7eb; color: #4b5563; }
+  .err { color: #b91c1c; font-size: 12px; }
+  .empty { color: #7a8a9b; font-size: 13px; }
+  a.dl { font-size: 12px; color: #0f7b6c; text-decoration: none;
+         border: 1px solid #0f7b6c; border-radius: 5px; padding: 2px 8px; }
+  a.dl:hover { background: #0f7b6c; color: #fff; }
   #toast { position: fixed; right: 16px; bottom: 16px; background: #16324f;
            color: #fff; padding: 10px 16px; border-radius: 6px; font-size: 13px;
-           display: none; }
+           display: none; max-width: 60%; }
 </style>
 </head>
 <body>
 <header>
-  <h1>UDP 遥测缺号诊断台</h1>
-  <p>本地发包端 → 本机 Linux 接收端：每轮独立套接字，收尾读取该轮内核丢包计数（/proc/net/udp 的 drops 列），多轮并发分别统计</p>
+  <h1>UDP 遥测特征留样诊断台</h1>
+  <p>联调程序向本机 UDP 端口发包，服务给实收包编号（滚动保留最近 {{ window_cap }} 包）；
+     登记十六进制载荷前缀后，首个匹配包自动留样（命中包 + 紧邻前后包），
+     触发后 {{ collect_timeout_s }} 秒内收齐，收齐可下载 JSON Lines</p>
 </header>
 <main>
   <div class="panel">
-    <h2>发起一轮诊断</h2>
+    <h2>运行状态（每秒自动刷新）</h2>
+    <div class="stats" id="stats"><span class="empty">加载中…</span></div>
+  </div>
+
+  <div class="panel">
+    <h2>登记留样规则</h2>
     <div class="grid">
-      <div><label>包数 total</label><input id="total" type="number" value="2000"></div>
-      <div><label>包长 payload(字节)</label><input id="payload" type="number" value="512"></div>
-      <div><label>发送间隔 send_interval_ms</label><input id="send_interval_ms" type="number" value="0" step="0.1"></div>
-      <div><label>接收暂缓 recv_pause_ms</label><input id="recv_pause_ms" type="number" value="0"></div>
-      <div><label>每包处理 recv_delay_ms</label><input id="recv_delay_ms" type="number" value="0" step="0.1"></div>
-      <div><label>收尾收包 grace_ms</label><input id="grace_ms" type="number" value="800"></div>
-      <div><label>接收缓冲 rcvbuf(字节)</label><input id="rcvbuf" type="number" value="1048576"></div>
-      <div><label>发送跳号 skip（如 10,20,30-40）</label><input id="skip" type="text" placeholder="留空表示不跳号"></div>
+      <div><label>载荷前缀（十六进制，如 {{ demo_prefix }}）</label>
+        <input id="prefix_hex" type="text" placeholder="{{ demo_prefix }}"></div>
+      <div><label>前包数 before（命中包之前）</label>
+        <input id="before" type="number" value="2" min="0" max="{{ slot_budget - 1 }}"></div>
+      <div><label>后包数 after（命中包之后）</label>
+        <input id="after" type="number" value="2" min="0" max="{{ slot_budget - 1 }}"></div>
     </div>
     <div class="btns">
-      <button onclick="startRound()">开始一轮</button>
-      <button class="demo" onclick="startDemo()">并发演示：接收暂缓 + 发送跳号（两轮同跑）</button>
-      <button class="ghost" onclick="clearRounds()">清空已结束</button>
+      <button onclick="registerRule()">登记规则</button>
+    </div>
+    <div class="hint">
+      登记后<b>首个</b>载荷以该前缀开头的包触发留样（每条规则只触发一次）；
+      触发时为完整区间 [命中-前, 命中+后] 预留名额（含还没到的包），
+      全部样本合计最多 {{ slot_budget }} 个编号，重叠编号只占一个名额；
+      前段不足或名额超额则本次触发报失败；{{ collect_timeout_s }} 秒未收齐即作废。
     </div>
   </div>
 
   <div class="panel">
-    <h2>诊断轮次（每秒自动刷新）</h2>
-    <div id="rounds"><p style="color:#7a8a9b;font-size:13px">暂无轮次</p></div>
+    <h2>本机发包演示</h2>
+    <div class="grid">
+      <div><label>包数 count</label><input id="demo_count" type="number" value="40"></div>
+      <div><label>发送间隔 interval_ms</label><input id="demo_interval" type="number" value="20"></div>
+    </div>
+    <div class="btns">
+      <button class="demo" onclick="runDemo()">发送演示包</button>
+      <button class="ghost" onclick="fillDemoRule()">填入演示规则（前缀 {{ demo_prefix }}，前2后2）</button>
+    </div>
+    <div class="hint">演示在普通遥测帧中夹两帧 <span class="mono">{{ demo_prefix }}</span>
+      开头的"异常"帧：先点「填入演示规则」并登记，再点「发送演示包」，即可看到留样命中。</div>
+  </div>
+
+  <div class="panel">
+    <h2>留样规则</h2>
+    <div id="rules"><p class="empty">暂无规则</p></div>
+  </div>
+
+  <div class="panel">
+    <h2>留样样本</h2>
+    <div id="samples"><p class="empty">暂无样本</p></div>
+  </div>
+
+  <div class="panel">
+    <h2>最近实收包（滚动窗口，最多 {{ window_cap }} 包）</h2>
+    <div id="packets"><p class="empty">暂无报文</p></div>
   </div>
 </main>
 <div id="toast"></div>
@@ -92,99 +126,144 @@
 function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg; t.style.display = 'block';
-  setTimeout(() => t.style.display = 'none', 3000);
+  setTimeout(() => t.style.display = 'none', 3500);
 }
-
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g,
+    c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 function num(id) { return document.getElementById(id).value; }
 
-async function startRound() {
-  const body = {
-    total: +num('total'), payload: +num('payload'),
-    send_interval_ms: +num('send_interval_ms'),
-    recv_pause_ms: +num('recv_pause_ms'),
-    recv_delay_ms: +num('recv_delay_ms'),
-    grace_ms: +num('grace_ms'), rcvbuf: +num('rcvbuf'),
-    skip: document.getElementById('skip').value.trim()
-  };
-  const r = await fetch('/api/rounds', {method: 'POST',
+async function registerRule() {
+  const body = { prefix_hex: document.getElementById('prefix_hex').value.trim(),
+                 before: +num('before'), after: +num('after') };
+  const r = await fetch('/api/rules', {method: 'POST',
     headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
   const j = await r.json();
-  if (!r.ok) { toast('参数错误：' + j.error); return; }
-  toast('已开跑：轮次 ' + j.id);
+  if (!r.ok) { toast('登记失败：' + j.error); return; }
+  toast('已登记规则 ' + j.id + '（前缀 ' + j.prefix_hex + '）');
   refresh();
 }
 
-async function startDemo() {
-  const r = await fetch('/api/demo', {method: 'POST'});
+function fillDemoRule() {
+  document.getElementById('prefix_hex').value = '{{ demo_prefix }}';
+  document.getElementById('before').value = 2;
+  document.getElementById('after').value = 2;
+  toast('已填入演示规则，点击「登记规则」生效');
+}
+
+async function runDemo() {
+  const r = await fetch('/api/demo', {method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({count: +num('demo_count'),
+                          interval_ms: +num('demo_interval')})});
   const j = await r.json();
-  toast('并发演示已开跑：暂缓轮 ' + j.pause_round + ' / 跳号轮 ' + j.skip_round);
-  refresh();
+  if (!r.ok) { toast('演示失败：' + j.error); return; }
+  toast('演示包发送中：' + j.sent + ' 包 → ' + j.to +
+        '（异常帧前缀 ' + j.anomaly_prefix + '）');
 }
 
-async function clearRounds() {
-  const r = await fetch('/api/rounds', {method: 'DELETE'});
+async function cancelRule(id) {
+  const r = await fetch('/api/rules/' + id, {method: 'DELETE'});
   const j = await r.json();
-  toast('已清空 ' + j.cleared + ' 轮');
+  toast(r.ok ? '已撤销规则 ' + id : '撤销失败：' + j.error);
   refresh();
 }
 
-function classify(r) {
-  if (r.state === 'ERROR') return 'ERROR';
-  if (r.state !== 'DONE') return r.state;
-  if (r.drops === null) return 'weak';
-  if (r.drops > 0) return 'overflow';
-  if (r.missing_count > 0) return 'gap';
-  return 'clean';
+async function discardSample(id) {
+  const r = await fetch('/api/samples/' + id, {method: 'DELETE'});
+  const j = await r.json();
+  toast(r.ok ? '已丢弃样本 ' + id + '（仅归还其独占名额）' : '丢弃失败：' + j.error);
+  refresh();
 }
 
-function card(r) {
-  const cls = classify(r);
-  const p = r.params;
-  let html = `<div class="card ${cls}"><h3>轮次 ${r.id}
-    <span class="tag">${r.state}</span>
-    <span class="tag">端口 ${r.port ?? '-'}</span>
-    <span class="tag">rcvbuf 生效 ${r.rcvbuf_effective ?? '-'}</span>
-    <span class="tag">${r.created_at}</span></h3>
-    <div class="kv">
-      <span>编号空间 <b>0..${p.total - 1}</b></span>
-      <span>已发 <b>${r.sent}</b></span>
-      <span>已收 <b>${r.received}</b></span>
-      <span>缺号 <b>${r.missing_count ?? '统计中'}</b></span>
-      <span>内核丢包计数 <b>${r.drops === null ? '未取得' : r.drops}</b></span>
-      <span>发送跳号 <b>${p.skip_count}</b></span>
-      <span>接收暂缓 <b>${p.recv_pause_ms}ms</b></span>
-      <span>每包处理 <b>${p.recv_delay_ms}ms</b></span>
-    </div>`;
-  if (r.verdict) html += `<div class="verdict ${cls}">结论：${r.verdict}</div>`;
-  if (r.error) html += `<div class="err">注意：${r.error}</div>`;
-  if (r.state === 'DONE')
-    html += `<div class="btns" style="margin-top:8px">
-      <button class="ghost" onclick="toggleMissing('${r.id}')">缺号明细</button></div>
-      <div class="missing" id="missing-${r.id}" style="display:none"></div>`;
-  return html + '</div>';
+function renderStats(s) {
+  const w = s.window, q = s.slots;
+  const winRange = w.size ? `#${w.oldest}..#${w.newest}` : '空';
+  const quotaCls = q.used >= q.budget ? 'quota full' : 'quota';
+  const rs = s.rules || {}, ss = s.samples || {};
+  const cnt = (o, k) => o[k] || 0;
+  document.getElementById('stats').innerHTML = `
+    <span>监听 <b>${s.listen ? esc(s.listen[0] + ':' + s.listen[1]) : '未启动'}</b></span>
+    <span>实收 <b>${s.received_total}</b> 包（下一编号 #${s.next_seq}）</span>
+    <span>接收窗口 <b>${winRange}</b>（${w.size}/${w.cap}）</span>
+    <span>留样名额 <span class="${quotaCls}">${q.used}/${q.budget}</span></span>
+    <span>规则：待命中 <b>${cnt(rs,'ARMED')}</b> 已触发 <b>${cnt(rs,'TRIGGERED')}</b>
+      失败 <b>${cnt(rs,'FAILED')}</b></span>
+    <span>样本：收集中 <b>${cnt(ss,'COLLECTING')}</b> 已收齐 <b>${cnt(ss,'COMPLETE')}</b>
+      作废 <b>${cnt(ss,'EXPIRED')}</b> 丢弃 <b>${cnt(ss,'DISCARDED')}</b>
+      失败 <b>${cnt(ss,'FAILED')}</b></span>`;
 }
 
-async function toggleMissing(id) {
-  const el = document.getElementById('missing-' + id);
-  if (el.style.display === 'none') {
-    const r = await fetch('/api/rounds/' + id);
-    const j = await r.json();
-    el.textContent = (j.missing_preview && j.missing_preview.length)
-      ? '缺号（前 ' + j.missing_preview.length + ' 条）：' + j.missing_preview.join(', ')
-      : '无缺号';
-    el.style.display = 'block';
-  } else {
-    el.style.display = 'none';
+function renderRules(list) {
+  const box = document.getElementById('rules');
+  if (!list.length) { box.innerHTML = '<p class="empty">暂无规则</p>'; return; }
+  let html = `<table><tr><th>ID</th><th>前缀(hex)</th><th>前/后包数</th>
+    <th>状态</th><th>样本</th><th>登记时间</th><th>操作</th></tr>`;
+  for (const r of list) {
+    const act = r.state === 'ARMED'
+      ? `<button class="ghost small" onclick="cancelRule('${r.id}')">撤销</button>` : '';
+    html += `<tr><td class="mono">${r.id}</td>
+      <td class="mono">${esc(r.prefix_hex)}</td>
+      <td>-${r.before} / +${r.after}</td>
+      <td><span class="tag ${r.state}">${r.state}</span>
+        ${r.error ? `<div class="err">${esc(r.error)}</div>` : ''}</td>
+      <td class="mono">${r.sample_id ?? '-'}</td>
+      <td>${r.created_at}</td><td>${act}</td></tr>`;
   }
+  box.innerHTML = html + '</table>';
+}
+
+function renderSamples(list) {
+  const box = document.getElementById('samples');
+  if (!list.length) { box.innerHTML = '<p class="empty">暂无样本</p>'; return; }
+  let html = `<table><tr><th>ID</th><th>前缀(hex)</th><th>命中编号</th>
+    <th>区间</th><th>进度</th><th>状态</th><th>时间</th><th>操作</th></tr>`;
+  for (const s of list.slice().reverse()) {
+    const prog = `${s.collected}/${s.total}` +
+      (s.state === 'COLLECTING' ? `（剩 ${(s.remaining_ms/1000).toFixed(1)}s）` : '');
+    const dl = s.downloadable
+      ? `<a class="dl" href="/api/samples/${s.id}/download">下载 JSONL</a>` : '';
+    const dis = (s.state === 'COLLECTING' || s.state === 'COMPLETE')
+      ? `<button class="ghost small" onclick="discardSample('${s.id}')">丢弃</button>` : '';
+    const tm = s.completed_at ? '收齐 ' + s.completed_at
+             : (s.finished_at ? '终结 ' + s.finished_at : '触发 ' + s.created_at);
+    html += `<tr><td class="mono">${s.id}</td>
+      <td class="mono">${esc(s.prefix_hex)}</td>
+      <td class="mono">#${s.hit_seq}</td>
+      <td class="mono">#${s.start_seq}..#${s.end_seq}</td>
+      <td>${prog}</td>
+      <td><span class="tag ${s.state}">${s.state}</span>
+        ${s.error ? `<div class="err">${esc(s.error)}</div>` : ''}</td>
+      <td>${tm}</td><td>${dl} ${dis}</td></tr>`;
+  }
+  box.innerHTML = html + '</table>';
+}
+
+function renderPackets(list) {
+  const box = document.getElementById('packets');
+  if (!list.length) { box.innerHTML = '<p class="empty">暂无报文</p>'; return; }
+  let html = `<table><tr><th>编号</th><th>源地址</th><th>长度</th>
+    <th>载荷前 24 字节(hex)</th></tr>`;
+  for (const p of list) {
+    html += `<tr><td class="mono">#${p.seq}</td>
+      <td class="mono">${esc(p.src)}</td><td>${p.len}</td>
+      <td class="mono">${esc(p.hex)}${p.truncated ? '…' : ''}</td></tr>`;
+  }
+  box.innerHTML = html + '</table>';
 }
 
 async function refresh() {
-  const r = await fetch('/api/rounds');
-  const list = await r.json();
-  const box = document.getElementById('rounds');
-  box.innerHTML = list.length
-    ? list.map(card).join('')
-    : '<p style="color:#7a8a9b;font-size:13px">暂无轮次</p>';
+  try {
+    const [st, rules, samples, packets] = await Promise.all([
+      fetch('/api/status').then(r => r.json()),
+      fetch('/api/rules').then(r => r.json()),
+      fetch('/api/samples').then(r => r.json()),
+      fetch('/api/packets?limit=30').then(r => r.json()),
+    ]);
+    renderStats(st); renderRules(rules); renderSamples(samples);
+    renderPackets(packets);
+  } catch (e) { /* 服务重启中，下个周期再试 */ }
 }
 setInterval(refresh, 1000);
 refresh();
